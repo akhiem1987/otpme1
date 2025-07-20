@@ -7,7 +7,8 @@
   <style>
     body { font-family: Arial, sans-serif; padding: 2em; background-color: #f7f7f7; }
     .container { max-width: 500px; margin: auto; background: white; padding: 2em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
+    input, button, textarea { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
+    textarea { resize: vertical; }
     .result { margin-top: 20px; padding: 1em; background: #eee; border-radius: 5px; word-break: break-word; }
     .hidden { display: none; }
   </style>
@@ -31,7 +32,7 @@
       <div id="apiKeyBlock">
         <input type="text" id="apiKeyInput" placeholder="Enter API Key (optional if blank)">
       </div>
-      <input type="text" id="phoneInput" placeholder="Enter phone number (e.g. +14022106159)">
+      <input type="text" id="phoneInput" placeholder="Enter phone number (e.g. 4022106159)">
       <button onclick="getOTPByPhone()">Get OTP</button>
       <div id="result" class="result"></div>
     </div>
@@ -40,6 +41,12 @@
       <hr>
       <h3>Export ID/Phone data</h3>
       <button onclick="exportPhoneMap()">Download ID_PhoneMap.json</button>
+
+      <hr>
+      <h3>Import ID/Phone data</h3>
+      <textarea id="importInput" rows="6" placeholder="Paste lines: ID|phone\nID|phone\n..."></textarea>
+      <button onclick="importPhoneMap()">Import</button>
+      <div id="importResult" class="result"></div>
     </div>
   </div>
 
@@ -50,8 +57,8 @@
     let selectedRole = "user";
 
     const phoneMap = [
-      { "phone": "+14022106159", "id": "297045661" },
-      { "phone": "+13177409890", "id": "297045672" }
+      { "phone": "4022106159", "id": "297045661" },
+      { "phone": "3177409890", "id": "297045672" }
     ];
 
     function selectRole(role) {
@@ -83,7 +90,7 @@
       const phone = document.getElementById("phoneInput").value.trim();
       const keyInput = document.getElementById("apiKeyInput").value.trim();
       const resultBox = document.getElementById("result");
-      if (selectedRole === 'admin' && keyInput) apiKey = keyInput; // only update if admin
+      if (selectedRole === 'admin' && keyInput) apiKey = keyInput;
 
       if (!phone) return resultBox.innerHTML = "Please enter a phone number.";
 
@@ -109,14 +116,14 @@
 
         if (extraText.includes("ACCESS_EXTRA_ACTIVATION")) {
           const parts = extraText.split(":");
-          const sms = parts.slice(2).join(":".trim());
+          const sms = parts.slice(2).join(":").trim();
           resultBox.innerHTML = `<b>OTP (extra):</b> ${sms}`;
           return;
         }
 
         if (statusText.includes("STATUS_OK")) {
           const parts = statusText.split(":");
-          const sms = parts.slice(2).join(":".trim());
+          const sms = parts.slice(2).join(":").trim();
           resultBox.innerHTML = `<b>OTP (status):</b> ${sms}`;
         } else {
           resultBox.innerHTML = `No OTP found. Status: ${statusText}`;
@@ -136,6 +143,30 @@
       a.download = "ID_PhoneMap.json";
       a.click();
       URL.revokeObjectURL(url);
+    }
+
+    function importPhoneMap() {
+      const input = document.getElementById("importInput").value;
+      const resultBox = document.getElementById("importResult");
+      try {
+        const lines = input.trim().split("\n");
+        let count = 0;
+        lines.forEach(line => {
+          const parts = line.split("|");
+          if (parts.length === 2) {
+            const id = parts[0].trim();
+            let phone = parts[1].trim();
+            if (phone.startsWith("+1")) phone = phone.slice(2);
+            if (id && phone && !phoneMap.some(p => p.phone === phone)) {
+              phoneMap.push({ id, phone });
+              count++;
+            }
+          }
+        });
+        resultBox.innerHTML = `✅ ${count} entries imported successfully.`;
+      } catch (e) {
+        resultBox.innerHTML = "❌ Failed to import. Check the format (ID|phone).";
+      }
     }
   </script>
 </body>
